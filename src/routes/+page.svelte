@@ -6,7 +6,6 @@
 <table class="table-auto">
     <thead>
         <tr>
-            <th>Fotografia</th>
             <th>Data licytacji</th>
             <th>Kategoria</th>
             <th>Nazwa</th>
@@ -19,7 +18,7 @@
     <tbody>
         {#each data.listings as listing}
         <tr>
-            <td>{listing.startDate}</td>
+            <td></td>
             <td>{listing.category}</td>
             <td>{listing.name}</td>
             <td>{listing.city}</td>
