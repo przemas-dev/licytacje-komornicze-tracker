@@ -1,4 +1,5 @@
 export type Auction = {
+    id: number;
     imageUrl: string | null;
     startDate: Date | null;
     endDate: Date | null;

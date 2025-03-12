@@ -114,7 +114,9 @@ function extractListings($: cheerio.CheerioAPI): Auction[] {
             console.log(cityAndProvince);
             const dateCell = row.find('td').eq(2).text().trim();
             const datesMatch = dateCell.match(/(\d{2}\.\d{2}\.\d{4})(?:.*?(\d{2}\.\d{2}\.\d{4}))?/);
+            const detailsUrl = sourceUrl + row.find('td').eq(8).find('a').attr('href')?.toString();
             const auction: Auction = {
+                id: parseInt(detailsUrl.split('/').at(-1)!),
                 imageUrl: sourceUrl + row.find('td').eq(1).find('img').attr('src')?.toString(),
                 startDate: parseDate(datesMatch?.[1]),
                 endDate: parseDate(datesMatch?.[2]),
@@ -124,7 +126,7 @@ function extractListings($: cheerio.CheerioAPI): Auction[] {
                 province: cityAndProvince.province,
                 price: parsePrice(row.find('td').eq(6).text().trim()),
                 auctionUrl: row.find('td').eq(7).find('a').attr('href')?.toString() ?? null,
-                detailsUrl: sourceUrl + row.find('td').eq(8).find('a').attr('href')?.toString()
+                detailsUrl: detailsUrl
             };
             return auction;
         })
