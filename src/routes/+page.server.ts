@@ -32,6 +32,7 @@ const parseDate = (dateStr: string | undefined): Date | null => {
 };
 
 export const load = async () => {
+    return{};
     const result = await fetch('https://licytacje.komornik.pl/Notice/Search', {
         method: 'POST',
         headers: {
@@ -131,4 +132,16 @@ function extractListings($: cheerio.CheerioAPI): Auction[] {
             return auction;
         })
         .get();
+}
+
+
+
+export function getAuctions(city: string) : Auction[]{
+    return [];
+}
+
+export const actions = {
+    default: async (event) =>{
+        console.log(event);
+    }
 }
