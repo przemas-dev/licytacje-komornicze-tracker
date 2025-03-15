@@ -31,57 +31,6 @@ const parseDate = (dateStr: string | undefined): Date | null => {
     return new Date(year, month - 1, day);
 };
 
-export const load = async () => {
-    return{};
-    const result = await fetch('https://licytacje.komornik.pl/Notice/Search', {
-        method: 'POST',
-        headers: {
-            'Host': 'licytacje.komornik.pl',
-            'Content-Length': '244',
-            'Cache-Control': 'max-age=0',
-            'Origin': 'https://licytacje.komornik.pl',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36',
-            'Referer': 'https://licytacje.komornik.pl/',
-            'Cookie': 'ASP.NET_SessionId=eirutg04itcz4mji5za4teti; __RequestVerificationToken=9nqJd2FfXdzJZ8XFcP6fdQvocEq5xCvUBfHiexTvpqsHHQSf93DfwtsalgQxRMtLoQ5bN1ooxw_iwph3eYag129BMGbBj9uHSUi7k2ns0tU1; licytacje.komornik.pl=cookiesPolicy=true'
-        },
-        body: new URLSearchParams({
-            '__RequestVerificationToken': 'yccPGsvITZETGIYQvhYh4t1iEezTMliNvgyXQkEf4l_xQq3QYAmA-SPz7-cqu1IWbBPYS_vb_XfdQXR-ykwlQ-A3gE3oy60C3gXZdjYTFgc1',
-            'Type': '1',
-            'CategoryId': '',
-            'MobilityCategoryId': '',
-            'PropertyCategoryId': '',
-            'ProvinceId': '',
-            'City': 'Kraków',
-            'AuctionsDate': '',
-            'Words': ''
-        }),
-        redirect: 'follow'
-    });
-
-    const html = await result.text();
-
-    const $ = cheerio.load(html);
-    const listings: Auction[] = []; //TODO: introduce specific type
-
-
-    const lastPageUrl = $('a').toArray().find(el => $(el).text().trim() === '>>')?.attribs['href'];
-    const match = lastPageUrl?.match(/page=(\d+)/);
-    const lastPageNumber = match ? parseInt(match[1]) : 1;
-
-    console.log(lastPageUrl);
-
-    listings.push(...extractListings($));
-
-    const pageNumbers = Array.from({ length: lastPageNumber - 1 }, (_, i) => i + 2);
-    console.log(pageNumbers);
-    const pageRequests = pageNumbers.map(page => fetchPageData(page));
-
-    const allListings = await Promise.all(pageRequests);
-    listings.push(...allListings.flat())
-
-    return { listings };
-};
-
 async function fetchPageData(pageNumber: number) {
     const url = `https://licytacje.komornik.pl/Notice/Search?page=${pageNumber}&sortOrder=DataLicytacji`;
     const response = await fetch(url, {
@@ -135,13 +84,60 @@ function extractListings($: cheerio.CheerioAPI): Auction[] {
 }
 
 
+async function getAuctions(city: string) : Promise<Auction[]>{
+    const result = await fetch('https://licytacje.komornik.pl/Notice/Search', {
+        method: 'POST',
+        headers: {
+            'Host': 'licytacje.komornik.pl',
+            'Cache-Control': 'max-age=0',
+            'Origin': 'https://licytacje.komornik.pl',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36',
+            'Referer': 'https://licytacje.komornik.pl/',
+            'Cookie': 'ASP.NET_SessionId=eirutg04itcz4mji5za4teti; __RequestVerificationToken=9nqJd2FfXdzJZ8XFcP6fdQvocEq5xCvUBfHiexTvpqsHHQSf93DfwtsalgQxRMtLoQ5bN1ooxw_iwph3eYag129BMGbBj9uHSUi7k2ns0tU1; licytacje.komornik.pl=cookiesPolicy=true'
+        },
+        body: new URLSearchParams({
+            '__RequestVerificationToken': 'yccPGsvITZETGIYQvhYh4t1iEezTMliNvgyXQkEf4l_xQq3QYAmA-SPz7-cqu1IWbBPYS_vb_XfdQXR-ykwlQ-A3gE3oy60C3gXZdjYTFgc1',
+            'Type': '1',
+            'CategoryId': '',
+            'MobilityCategoryId': '',
+            'PropertyCategoryId': '',
+            'ProvinceId': '',
+            'City': city,
+            'AuctionsDate': '',
+            'Words': ''
+        }),
+        redirect: 'follow'
+    });
 
-export function getAuctions(city: string) : Auction[]{
-    return [];
+    const html = await result.text();
+
+    const $ = cheerio.load(html);
+    const listings: Auction[] = [];
+
+
+    const lastPageUrl = $('a').toArray().find(el => $(el).text().trim() === '>>')?.attribs['href'];
+    const match = lastPageUrl?.match(/page=(\d+)/);
+    const lastPageNumber = match ? parseInt(match[1]) : 1;
+
+
+    listings.push(...extractListings($));
+
+    const pageNumbers = Array.from({ length: lastPageNumber - 1 }, (_, i) => i + 2);
+    const pageRequests = pageNumbers.map(page => fetchPageData(page));
+
+    const allListings = await Promise.all(pageRequests);
+    listings.push(...allListings.flat())
+
+    return listings;
 }
 
 export const actions = {
-    default: async (event) =>{
-        console.log(event);
+    default: async ({request}) =>{
+        const data = await request.formData();
+        const city = data.get('city') as string;
+        const auctions = await getAuctions(city);
+        return {
+            auctions: auctions
+        };
     }
 }

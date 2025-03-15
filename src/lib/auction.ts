@@ -1,4 +1,4 @@
-export type Auction = {
+export interface Auction {
     id: number;
     imageUrl: string | null;
     startDate: Date | null;
