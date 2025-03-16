@@ -3,7 +3,31 @@
 	let { data, form }: PageProps = $props();
 </script>
 
-<form method="POST">
+{#if data?.email}
+	<p>Logged as {data.email}</p>
+{:else}
+	{#if !form?.codeSent}
+		<form action="?/sendCode" method="post">
+			<label>
+				Email:
+				<input type="email" name="email" />
+			</label>
+			<button type="submit">Send code</button>
+		</form>
+	{/if}
+
+	{#if form?.codeSent && !data?.email}
+		<form action="?/login" method="post">
+			<label>
+				Code:
+				<input type="text" name="code" />
+			</label>
+			<button type="submit">Login</button>
+		</form>
+	{/if}
+{/if}
+
+<form method="POST" action="?/auctions">
 	<label>
 		Miasto:
 		<input type="text" name="city" />
