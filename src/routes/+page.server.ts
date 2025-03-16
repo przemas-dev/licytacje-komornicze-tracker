@@ -1,12 +1,11 @@
-import { dbConnect } from '$lib/server/db.js';
 import { AuctionModel } from '$lib/models/auctionModel..js';
 import { getAuctions } from '$lib/server/scraper.js';
+import { JWT_SECRET } from '$env/static/private';
 import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = 'secret_key';
+import { fail } from '@sveltejs/kit';
 
 export const actions = {
-    auctions: async ({request}) =>{
+    auctions: async ({ request }) => {
         const data = await request.formData();
         const city = data.get('city') as string;
         const auctions = await getAuctions(city);
@@ -38,7 +37,7 @@ export const actions = {
             auctions: auctions
         };
     },
-    sendCode: async ({request, cookies}) => {
+    sendCode: async ({ request, cookies }) => {
         const data = await request.formData();
         const email = data.get('email') as string;
         const code = Math.floor(1000 + Math.random() * 9000).toString();
@@ -55,19 +54,21 @@ export const actions = {
         return {
             codeSent: true
         };
+
+        return fail(500, { error: 'Failed to send code. Try again later.' });
     },
-    login: async ({request, cookies}) => {
+    login: async ({ request, cookies }) => {
         const data = await request.formData();
         const code = data.get('code') as string;
         const email = cookies.get('email');
 
-        if(code !== '1234'){
-            return { success: false , email: null};
+        if (code !== '1234') {
+            return fail(400, {error: 'Invalid code', codeSent: true});
         }
 
         const token = jwt.sign({ email }, JWT_SECRET, { expiresIn: '1h' });
 
-        cookies.delete('email', {path: '/'});
+        cookies.delete('email', { path: '/' });
         cookies.set('token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
@@ -75,26 +76,6 @@ export const actions = {
             path: '/'
         } as any);
 
-        return {email: email};
+        return { email: email };
     }
-
 };
-
-
-
-export async function load({cookies}) {
-    await dbConnect();
-
-    const token = cookies.get('token');
-
-    if (!token) {
-        return { email: null };
-    }
-
-    try {
-        const decoded = jwt.verify(token, JWT_SECRET) as { email: string };
-        return { email: decoded.email };
-    } catch {
-        return { email: null };
-    }
-}
