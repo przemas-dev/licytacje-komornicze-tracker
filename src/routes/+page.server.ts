@@ -3,6 +3,10 @@ import { getAuctions } from '$lib/server/scraper.js';
 import { JWT_SECRET } from '$env/static/private';
 import jwt from 'jsonwebtoken';
 import { fail } from '@sveltejs/kit';
+import { SendCode} from '$lib/server/email';
+
+
+const otpCodes: Record<string, string> = {};
 
 export const actions = {
     auctions: async ({ request }) => {
@@ -51,6 +55,9 @@ export const actions = {
             path: '/'
         });
 
+        await SendCode(email, code);
+
+        otpCodes[email] = code;
         return {
             codeSent: true
         };
@@ -60,11 +67,13 @@ export const actions = {
     login: async ({ request, cookies }) => {
         const data = await request.formData();
         const code = data.get('code') as string;
-        const email = cookies.get('email');
+        const email = cookies.get('email') as string;
 
-        if (code !== '1234') {
+        if (code !== otpCodes[email]) {
             return fail(400, {error: 'Invalid code', codeSent: true});
         }
+
+        delete otpCodes[email];
 
         const token = jwt.sign({ email }, JWT_SECRET, { expiresIn: '1h' });
 
